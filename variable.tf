@@ -6,7 +6,7 @@ variable "user" {
 
 variable "password" {
   type = string
-    default = "!coalizao!@QWASZX"
+    default = "************"
   
 }
 
