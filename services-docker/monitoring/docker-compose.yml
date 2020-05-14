@@ -1,0 +1,116 @@
+version: '2'
+
+services:
+  server:
+    image: zabbix/zabbix-server-mysql:alpine-4.4.2
+    container_name: zabbix-server
+    depends_on:
+      - mysql
+    environment:
+      PHP_TZ: America/Fortaleza
+      DB_SERVER_HOST: "mysql"
+      MYSQL_DATABASE: "zabbix"
+      MYSQL_USER: "zabbix"
+      MYSQL_PASSWORD: "zabbix"
+      MYSQL_ROOT_PASSWORD: "admin"
+      ZBX_DEBUGLEVEL: 2
+    ports:
+      - "10051:10051"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./zabbix/alertscripts:/usr/lib/zabbix/alertscripts
+      - ./zabbix/etc/zabbix_server.conf:/etc/zabbix/zabbix_server.conf
+    links:
+      - mysql:zabbix-mysql
+    user: root
+    networks:
+      default:
+        aliases:
+          - server
+    restart: always
+
+  agent:
+    image: zabbix/zabbix-agent:alpine-4.4.2
+    container_name: zabbix-agent
+    privileged: true
+    depends_on:
+      - server
+    links:
+      - server:zabbix-server
+    environment:
+      ZBX_HOSTNAME: "server"
+      ZBX_SERVER_HOST: "server"
+      ZBX_VERSION: "4.4.2"
+      TERM: "xterm"
+    networks:
+      default:
+        aliases:
+          - server
+    restart: always
+
+  web:
+    image: zabbix/zabbix-web-nginx-mysql:alpine-4.4.1
+    container_name: zabbix-web
+    depends_on:
+      - mysql
+      - server
+    environment:
+      PHP_TZ: America/Fortaleza
+      DB_SERVER_HOST: "mysql"
+      ZBX_SERVER_HOST: "server"
+      MYSQL_DATABASE: "zabbix"
+      MYSQL_USER: "zabbix"
+      MYSQL_PASSWORD: "zabbix"
+      MYSQL_ROOT_PASSWORD: "admin"
+      ZBX_VERSION: "4.4.1"
+    volumes:
+      #- ./zabbix/graphfont.ttf:/usr/share/zabbix/fonts/graphfont.ttf
+      - /etc/localtime:/etc/localtime:ro
+
+    links:
+      - mysql:zabbix-mysql
+      - server:zabbix-server
+    ports:
+      - "82:80"
+    user: root
+    networks:
+      default:
+        aliases:
+          - server
+    restart: always
+
+  mysql:
+    image: mysql:5.7
+    container_name: zabbix-mysql
+    command: --character-set-server=utf8 --collation-server=utf8_general_ci
+    environment:
+      TZ: America/Fortaleza
+      MYSQL_DATABASE: "zabbix"
+      MYSQL_USER: "zabbix"
+      MYSQL_PASSWORD: "zabbix"
+      MYSQL_ROOT_PASSWORD: "admin"
+    networks:
+      default:
+        aliases:
+          - mysql
+    volumes:
+      - ./mysql:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro
+    restart: always
+
+  grafana:
+    image: grafana/grafana:6.0.0
+    container_name: grafana
+    user: "root"
+    #command: "chmod 777 -R /var/lib/grafana/plugins"
+    environment:
+      TZ: America/Fortaleza
+    ports:
+      - 3000:3000
+    networks:
+      default:
+        aliases:
+          - grafana
+    volumes:
+      - ./grafana:/var/lib/grafana
+    restart: always

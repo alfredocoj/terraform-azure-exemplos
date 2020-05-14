@@ -1,0 +1,134 @@
+version: '3.3'
+services:
+  postgres:
+    image: postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_PASSWORD=zabbix
+      - POSTGRES_USER=zabbix
+      - POSTGRES_DB=zabbix
+    volumes:
+      - zabbix_db:/var/lib/postgresql/data
+      - backups:/backups
+    networks:
+      - zabbix
+    ports:
+      - "5432:5432"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #       cpus: '0.50'
+ 
+  zabbix_server:
+    image: zabbix/zabbix-server-pgsql
+    depends_on:
+      - postgres
+    environment:
+      - DB_SERVER_HOST=postgres
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      #- /usr/lib/zabbix/alertscripts:/usr/lib/zabbix/alertscripts
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+    #       cpus: '0.50'
+    networks:
+      - zabbix
+    ports:
+      - "10051:10051"
+    # links:
+    #   - zabbix_agente:zabbix_agente      
+      
+  zabbix_agente:
+    privileged: true
+    #network_mode: host
+    image: zabbix/zabbix-agent
+    depends_on:
+      - zabbix_server
+    environment:
+      - ZBX_HOSTNAME=zabbix_agente
+      - ZBX_SERVER_HOST=zabbix_server
+      #- ZBX_ACTIVESERVERS=
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 128M
+    ports:
+      - "10050:10050"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /:/rootfs
+      - /var/run:/var/run      
+    networks:
+      - zabbix
+    # links:
+    #   - zabbix_server:zabbix_server
+
+  zabbix_web:
+    image: zabbix/zabbix-web-nginx-pgsql
+    hostname: zabbix_web
+    depends_on:
+      - zabbix_server
+    environment:
+      - DB_SERVER_HOST=postgres
+      - DB_USER=zabbix
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+      - ZBX_SERVER_HOST=zabbix_server
+    ports:
+      - "80:80"
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.50'
+    #       memory: 512M
+    networks:
+      - zabbix
+      
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana:/var/lib/grafana
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.50'
+    #       memory: 128M
+          
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local
+    restart: always
+    volumes:
+      - backups:/backups
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=zabbix
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix
+#     - POSTGRES_PASSWORD_FILE=/run/secrets/db_password <-- alternative for POSTGRES_PASSWORD (to use with docker secrets)
+      - POSTGRES_EXTRA_OPTS=-Z9 --schema=public --blobs
+      - SCHEDULE=@daily
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - HEALTHCHECK_PORT=80
+          
+volumes:
+  zabbix_db:
+  backups:
+  grafana:
+
+networks:
+  zabbix:
+    driver: overlay
