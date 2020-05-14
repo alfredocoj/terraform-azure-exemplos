@@ -1,0 +1,12 @@
+[dockers]
+devops-vm-monitoring  ansible_host=10.0.3.4 ansible_ssh_private_key_file=/home/alfredo/.ssh/id_rsa
+devops-vm-master  ansible_host=10.0.2.5 ansible_ssh_private_key_file=/home/alfredo/.ssh/id_rsa
+devops-vm-node    ansible_host=10.0.2.4 ansible_ssh_private_key_file=/home/alfredo/.ssh/id_rsa
+
+[loadbalancer]
+loadbalancer ansible_host=10.0.1.4
+#13.77.144.158
+
+
+[ftp:vars]
+ansible_python_interpreter=/usr/bin/python3

@@ -1,0 +1,111 @@
+---
+- hosts: dockers
+  environment:
+    PYTHONPATH: "{{ lookup('env','PYTHONPATH') }}:/usr/local/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages"
+  remote_user: alfredo
+  become: yes
+  become_method: sudo
+  tasks:
+    # - name: upgrade all packages
+    #   package:
+    #     name: "*"
+    #     state: latest
+  
+    - name: install development packages
+      package: name={{ item }}
+        state=present
+      with_items:
+        - python3
+        - git
+        - atop
+        - htop
+        - curl
+        - tmux
+        - mcedit
+        - docker.io
+  
+    - name: Check if Docker is installed
+      command: systemctl status docker
+      register: docker_check
+      ignore_errors: yes
+  
+    # - name: Download the Docker installer
+    #   get_url:
+    #     url: https://get.docker.com/
+    #     dest: /root/install_docker.sh
+    #     mode: 0700
+    #     validate_certs: no
+    #   when: docker_check.stderr.find('service could not be found') != -1
+  
+    # - name: Install Docker
+    #   shell: /root/install_docker.sh nightly
+    #   when: docker_check.stderr.find('service could not be found') != -1
+  
+    # - name: Remove the Docker installer file.
+    #   file:
+    #     state: absent
+    #     path: /root/install_docker.sh
+  
+    # - name: Enable the Docker daemon in systemd
+    #   systemd:
+    #     name: docker
+    #     enabled: yes
+    #     masked: no
+  
+    # - name: Start the Docker daemon
+    #   systemd:
+    #     name: docker
+    #     state: started
+    #     masked: no
+  
+    # - name: Check if Docker Compose is installed
+    #   command: docker-compose --version
+    #   register: docker_compose_check
+    #   ignore_errors: yes
+  
+    - name: Download and install Docker Compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/1.21.2/docker-compose-Linux-x86_64
+        dest: /usr/bin/docker-compose
+        mode: 0755
+      when:
+        - docker_compose_check.msg is defined
+        - docker_compose_check.msg.find('No such file or directory') != -1
+  
+    - name: Ensure group "server" exists
+      group:
+        name: server
+        state: present
+  
+    - name: Add the user 'server' with a bash shell, appending the group 'root' and 'docker' to the user's groups
+      user:
+        name: server
+        shell: /bin/bash
+        groups: docker,server
+        ## ZmZiZTllN2ZhZDM2ZTFlYjU4NDE3OTVl
+        password: $6$gCEjFYqjVSoPYvW$IrZyDHVnoS02WkLLFf3/V8/bJyH15G/d0qvdOv4G.rY.LO5ptWY5sfiysz7oQie0sJUM7SjuZQ1HjsSln63IB/
+        append: yes
+  
+    - name: Allow server group to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%server'
+        line: '%server ALL=(ALL) NOPASSWD: ALL'
+  
+    - name: Set up multiple authorized keys
+      authorized_key:
+        user: server
+        state: present
+        key: '{{ item }}'
+      with_file:
+        - public_keys/alfredo.pub
+  
+    - name: Set up multiple authorized keys
+      authorized_key:
+        user: root
+        state: present
+        key: '{{ item }}'
+      with_file:
+        - public_keys/alfredo.pub
+    

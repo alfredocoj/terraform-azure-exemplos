@@ -1,0 +1,62 @@
+- hosts: loadbalancer
+  environment:
+    PYTHONPATH: "{{ lookup('env','PYTHONPATH') }}:/usr/local/lib/python2.7/dist-packages:/usr/local/lib/python2.7/site-packages"
+  remote_user: alfredo
+  become: yes
+  become_method: sudo
+  tasks:
+    # - name: upgrade all packages
+    #   package:
+    #     name: "*"
+    #     state: latest
+  
+    - name: install development packages
+      package: name={{ item }}
+        state=present
+      with_items:
+        - python3
+        - git
+        - atop
+        - htop
+        - curl
+        - tmux
+        - mcedit
+        - haproxy
+
+
+    - name: Ensure group "server" exists
+      group:
+        name: server
+        state: present
+    
+    - name: Add the user 'server' with a bash shell, appending the group 'server' to the user's groups
+      user:
+        name: server
+        shell: /bin/bash
+        groups: server
+        ## ZmZiZTllN2ZhZDM2ZTFlYjU4NDE3OTVl
+        password: $6$gCEjFYqjVSoPYvW$IrZyDHVnoS02WkLLFf3/V8/bJyH15G/d0qvdOv4G.rY.LO5ptWY5sfiysz7oQie0sJUM7SjuZQ1HjsSln63IB/
+        append: yes  
+    
+    - name: Allow server group to have passwordless sudo
+      lineinfile:
+        dest: /etc/sudoers
+        state: present
+        regexp: '^%server'
+        line: '%server ALL=(ALL) NOPASSWD: ALL'
+
+    - name: Set up multiple authorized keys
+      authorized_key:
+        user: server
+        state: present
+        key: '{{ item }}'
+      with_file:
+        - public_keys/alfredo.pub
+
+    - name: Set up multiple authorized keys
+      authorized_key:
+        user: root
+        state: present
+        key: '{{ item }}'
+      with_file:
+        - public_keys/alfredo.pub
