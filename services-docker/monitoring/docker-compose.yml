@@ -99,7 +99,7 @@ services:
     restart: always
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:7.0.0
     container_name: grafana
     user: "root"
     #command: "chmod 777 -R /var/lib/grafana/plugins"
