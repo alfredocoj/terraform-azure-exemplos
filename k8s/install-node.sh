@@ -35,11 +35,11 @@ apt-get install -y kubelet=1.17.3-00 kubeadm=1.17.3-00 kubectl=1.17.3-00 kuberne
 
 ##Setting Limits on Ubuntu 16.04
 ##Open the grub configuration file in a text editor.
-nano /etc/default/grub
+#nano /etc/default/grub
 ##Add the following line. If the GRUB_CMDLINE_LINUX optional already exists, modify it to include the values below.
-GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"
+#GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"
 ##Save your changes and exit the text editor.
-
+sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="[^"]*/& cgroup_enable=memory swapaccount=1/' /etc/default/grub
 ##Update the grub configuration.
 
 sudo update-grub
