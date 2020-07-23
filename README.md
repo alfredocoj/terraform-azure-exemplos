@@ -44,3 +44,5 @@ https://www.terraform.io/docs/providers/azure/r/security_group_rule.html
 https://docs.microsoft.com/pt-br/azure/developer/terraform/hub-spoke-on-prem
 
 https://www.digitalocean.com/community/tutorials/how-to-install-and-configure-ansible-on-ubuntu-16-04
+
+https://medium.com/@michaelvershinin_2496/terraform-0-12-x-upgrading-and-issues-handling-5af6aab087e9
